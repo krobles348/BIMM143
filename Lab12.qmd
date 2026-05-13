@@ -1,0 +1,158 @@
+---
+title: "Lab13"
+Author: "Karina Robles Leyva"
+date: 5/10/2026
+---
+
+```{r}
+counts <- read.csv("airway_scaledcounts.csv", row.names=1)
+metadata <-  read.csv("airway_metadata.csv")
+```
+
+#Q1. How many genes in this dataset? 38694 genes which was found using the code down below.
+
+```{r}
+nrow(counts)
+
+```
+
+#Q2. How many 'control' cell lines do we have? There are 4 control cell lines found by using the code below.
+
+```{r}
+table(metadata$dex)
+
+```
+
+
+```{r}
+control <- metadata[metadata[,"dex"]=="control",]
+control.counts <- counts[ ,control$id]
+control.mean <- rowSums( control.counts )/4 
+head(control.mean)
+
+```
+
+
+#Q3. How would you make the above code in either approach more robust? Is there a function that could help here? 
+rowMeans
+
+#Q4. Follow the same procedure for the treated samples (i.e. calculate the mean per gene across drug treated samples and assign to a labeled vector called treated.mean)
+
+```{r}
+treated <- metadata[metadata[,"dex"]=="treated",]
+treated.mean <- rowSums( counts[ ,treated$id] )/4
+meancounts <- data.frame(control.mean, treated.mean)
+colSums(meancounts)
+```
+#Q5 (a). Create a scatter plot showing the mean of the treated samples against the mean of the control samples. Your plot should look something like the following.
+```{r}
+plot(meancounts[,1],meancounts[,2], 
+           xlab = "Control", ylab = "Treated")
+```
+
+
+#Q5 (b).You could also use the ggplot2 package to make this figure producing the plot below. What geom_?() function would you use for this plot? You can use the point geom function to make the graph shown.
+
+#Q6. Try plotting both axes on a log scale. What is the argument to plot() that allows you to do this? The argument used to plot the axes on a log scale is "log". The code below is the result.
+```{r}
+plot(meancounts[,1],meancounts[,2], 
+xlab = "Control", ylab = "Treated",
+log = "xy")
+```
+
+
+```{r}
+meancounts$log2fc <- log2(meancounts[,"treated.mean"]/meancounts[,"control.mean"])
+head(meancounts)
+```
+
+
+```{r}
+zero.vals <- which(meancounts[,1:2]==0, arr.ind=TRUE)
+
+to.rm <- unique(zero.vals[,1])
+mycounts <- meancounts[-to.rm,]
+head(mycounts)
+```
+
+#Q7. What is the purpose of the arr.ind argument in the which() function call above? Why would we then take the first column of the output and need to call the unique() function?
+#The arr.ind argument causes the return of true values in the rows and columns meaning that if there is a zero 
+
+
+```{r}
+up.ind <- mycounts$log2fc > 2
+down.ind <- mycounts$log2fc < (-2)
+counts(up.ind)
+
+```
+
+
+#Q8. Using the up.ind vector above can you determine how many up regulated genes we have at the greater than 2 fc level? There are 250 up elements as shown by the code above.
+
+#Q9. Using the down.ind vector above can you determine how many down regulated genes we have at the greater than 2 fc level? There are 367 up elements as shown by the code above.
+
+#Q10. Do you trust these results? Why or why not? While this can help give overarching patterns/ideas, the results are not to be trusted because we dont know how significant the results are.
+
+
+```{r}
+library(DESeq2)
+citation("DESeq2")
+```
+
+##Imported Data
+```{r}
+dds <- DESeqDataSetFromMatrix(countData=counts, 
+                              colData=metadata, 
+                              design=~dex)
+dds
+```
+
+##PCA Plot 1
+```{r}
+vsd <- vst(dds, blind = FALSE)
+plotPCA(vsd, intgroup = c("dex"))
+```
+
+##PCA Plot 2
+```{r}
+library(ggplot2)
+pcaData <- plotPCA(vsd, intgroup=c("dex"), returnData=TRUE)
+percentVar <- round(100 * attr(pcaData, "percentVar"))
+ggplot(pcaData) +
+  aes(x = PC1, y = PC2, color = dex) +
+  geom_point(size =3) +
+  xlab(paste0("PC1: ", percentVar[1], "% variance")) +
+  ylab(paste0("PC2: ", percentVar[2], "% variance")) +
+  coord_fixed() +
+  theme_bw()
+```
+
+```{r}
+dds <- DESeq(dds)
+res <- results(dds)
+res
+```
+
+```{r}
+as.data.frame(res)
+View(res)
+```
+
+##Summary of Section 7
+```{r}
+library("AnnotationDbi")
+library("org.Hs.eg.db")
+```
+
+
+
+
+
+
+
+
+
+
+w would you make the above code in either approach more robust? Is there a function that could help here? 
+
+-   **Q4.** Follow the same procedure for the `treated` samples (i.e. calculate the mean per gene across drug treated samples and assign to a labeled vector called `treated.mean`)
